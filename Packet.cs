@@ -11,7 +11,9 @@ namespace TextRpg_packet
     {
         보스=0,
         챕터,
-        패턴
+        패턴,
+        에러,
+        종료
         
     }
     [Serializable]
@@ -45,14 +47,15 @@ namespace TextRpg_packet
         }
         public static byte[] Serialize(Object o)
         {
-            MemoryStream ms = new MemoryStream(1024 * 4);
+            MemoryStream ms = new MemoryStream(256);
             BinaryFormatter bf = new BinaryFormatter();
             bf.Serialize(ms, o);
+            ms.Flush();
             return ms.ToArray();
         }
         public static Object Desserialize(byte[] bt)
         {
-            MemoryStream ms = new MemoryStream(1024 * 4);
+            MemoryStream ms = new MemoryStream(256);
             ms.Write(bt, 0, bt.Length);
             ms.Position = 0;
             BinaryFormatter bf = new BinaryFormatter();
@@ -73,4 +76,5 @@ namespace TextRpg_packet
         public int chapter = 0;
         public int pattern = 0;
     }
+
 }

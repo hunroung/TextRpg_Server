@@ -56,13 +56,14 @@ namespace Server
         public NetworkStream m_Stream;
         public bool m_bStop = false;
 
-        private byte[] sendBuffer=new byte[1024*4];
-        private byte[] readBuffer=new byte[1024*4];
+        private byte[] sendBuffer=new byte[256];
+        private byte[] readBuffer=new byte[256];
 
         TcpClient client_socket;
 
         public Boss m_boss;
         public Pattern m_pattern;
+        
 
         public void handling(object client_socket)
         {
@@ -76,7 +77,7 @@ namespace Server
                 try
                 {
                     n_read = 0;
-                    n_read=this.m_Stream.Read(readBuffer,0,1024*4);
+                    n_read=this.m_Stream.Read(readBuffer,0,256);
                 }
                 catch
                 {
@@ -84,25 +85,40 @@ namespace Server
                     this.m_Stream= null;
                     return;
                 }
-
-                Packet packet = (Packet)Packet.Desserialize(this.readBuffer);
-
-                switch ((int)packet.Typee)
+                try
                 {
-                    case (int)Packet_Type.보스:
-                        this.m_boss=(Boss)Packet.Desserialize(this.readBuffer);
-                        m_boss.value = BossOut(m_boss.value);
-                        Packet.Serialize(m_boss).CopyTo(this.sendBuffer,0);
-                        Send();
-                        break;
-                    case (int)Packet_Type.패턴:
-                        this.m_pattern=(Pattern)Packet.Desserialize(this.readBuffer);
-                        m_pattern.pattern = PatternOut(m_pattern.chapter,m_pattern.pattern);
-                        Packet.Serialize(m_pattern).CopyTo(this.sendBuffer,0);
-                        Send();
-                        break;
-                    default:
-                        break;
+                    Packet packet = (Packet)Packet.Desserialize(this.readBuffer);
+
+                    switch ((int)packet.Typee)
+                    {
+                        case (int)Packet_Type.보스:
+                            this.m_boss = (Boss)Packet.Desserialize(this.readBuffer);
+                            m_boss.value = BossOut(m_boss.value);
+                            Packet.Serialize(m_boss).CopyTo(this.sendBuffer, 0);
+                            Send();
+                            break;
+                        case (int)Packet_Type.패턴:
+                            this.m_pattern = (Pattern)Packet.Desserialize(this.readBuffer);
+                            m_pattern.pattern = PatternOut(m_pattern.chapter, m_pattern.pattern);
+                            Packet.Serialize(m_pattern).CopyTo(this.sendBuffer, 0);
+                            Send();
+                            break;
+                        case (int)Packet_Type.종료:
+                            this.m_bStop = false;
+                            this.m_Stream = null;
+                            Console.WriteLine("{0} 종료",client_socket);
+                            break;
+                        default:
+                            break;
+                    }
+                }
+                catch
+                {
+                    Console.WriteLine("Error Null");
+                    Packet error = new Packet();
+                    error.Typee = (int)Packet_Type.에러;
+                    Packet.Serialize(error).CopyTo(this.sendBuffer, 0);
+                    Send();
                 }
             }
         }
@@ -111,7 +127,7 @@ namespace Server
         {
             this.m_Stream.Write(this.sendBuffer,0,this.sendBuffer.Length);
             this.m_Stream.Flush();
-            for (int i=0;i<1024*4;i++)
+            for (int i=0;i<256;i++)
             {
                 this.sendBuffer[i]=0;
             }
